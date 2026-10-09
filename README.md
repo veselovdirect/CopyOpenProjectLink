@@ -21,13 +21,20 @@ The ready-to-use extension is in the **`extension`** folder. You do not need Nod
 3. Click **Load unpacked** and select the `extension` folder.
 4. If the page displays an extensions catalog, open `chrome://extensions` and load the extension there instead.
 
-The browser must support Manifest V3, `chrome.offscreen`, and `chrome.runtime.getContexts` (Chromium 116+). Corporate policies may prevent the installation of unpacked extensions. Integration testing was performed in Microsoft Edge 154; Chrome and Yandex Browser were not tested separately.
+The browser must support Manifest V3, `chrome.offscreen`, and `chrome.runtime.getContexts` (Chromium 116+). Corporate policies may prevent the installation of unpacked extensions. Integration testing was performed in Microsoft Edge 155; Chrome and Yandex Browser were not tested separately.
 
 To install from a ZIP you built yourself, extract it to a permanent folder and select that folder. See the build command below; generated archives are not stored in the repository. Keep the folder after installation, as the browser loads the extension files from it. After changing the code, click **Reload** on the extension card.
 
 ## Usage
 
-Open a page and click the icon, or choose **Copy Page Link as Markdown** from the right-click menu. Paste the result with Ctrl+V. Even when the menu is opened on a link or inside an iframe, the extension copies the tab's top-level page.
+Open a page and click the icon to copy a Markdown link with the page title. The right-click menu offers two choices under **Copy Page Link as Markdown**:
+
+- **Use page title** — use the full page title as the link text.
+- **Use work package ID** — use the ID in parentheses in an OpenProject page title as the link text, for example `[112554](https://host/work_packages/112554)`.
+
+The toolbar icon always uses the page title, regardless of the last menu choice. Paste the result with Ctrl+V. Even when the menu is opened on a link or inside an iframe, the extension copies the tab's top-level page.
+
+ID mode supports numeric and project-prefixed markers such as `(112554)`, `(OP-20237)`, and `(#112554)`. A leading `#` is preserved in the link text when present in the title; it is not added when absent and does not affect the URL. If several parentheses contain valid IDs, the last one is used. If the page is not OpenProject or its title contains no valid ID marker, the clipboard stays unchanged and the icon shows an error with an explanation.
 
 After a successful copy, the logo displays a green check mark for two seconds. On failure, a red `!` appears for four seconds, with an explanation in the icon's tooltip. Copying may be unavailable on internal browser pages, extension stores, and other documents that prohibit script injection. If reading the page fails, the clipboard is left unchanged. For local files, enable **Allow access to file URLs** in the extension's settings if the browser provides this option.
 
@@ -41,7 +48,7 @@ https://host/notifications/details/112554/files?facet=all
 → [Task title](https://host/work_packages/112554)
 ```
 
-URLs are normalized only when `<meta name="openproject_initializer">` is present in the document's `head`. Ordinary pages and unrecognized routes retain their query strings and fragments. The link text comes from `document.title`; Markdown characters are escaped, and parentheses in URLs are encoded to keep the link valid.
+URLs are normalized only when `<meta name="openproject_initializer">` is present in the document's `head`. Ordinary pages and unrecognized routes retain their query strings and fragments. The link text uses either the full `document.title` or its work package ID marker, depending on the selected mode. Markdown characters are escaped, and parentheses in URLs are encoded to keep the link valid.
 
 ## URL normalization
 
@@ -88,6 +95,7 @@ Components are in `extension/src`:
 
 - `page-info-provider.js` and `openproject-detector.js` — read the page title and URL, and detect OpenProject.
 - `work-package-url-resolver.js` — normalize work package URLs.
+- `work-package-id.js` — share the ID format and extract the ID marker from a page title.
 - `markdown-formatter.js` and `link-builder.js` — build the Markdown link.
 - `clipboard-service.js` and `offscreen.js` — write text to the clipboard.
 - `background.js` and `extension-actions.js` — handle toolbar clicks and context menu actions.

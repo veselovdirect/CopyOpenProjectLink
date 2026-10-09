@@ -1,4 +1,4 @@
-const ID = '(?:[0-9]+|[A-Za-z][A-Za-z0-9_-]*-[0-9]+)';
+import { WORK_PACKAGE_ID_PATTERN as ID } from './work-package-id.js';
 
 // The captured base also supports OpenProject installations under a subpath.
 export const WORK_PACKAGE_ROUTES = Object.freeze([

@@ -3,13 +3,15 @@ import assert from 'node:assert/strict';
 import { createCopyAction } from '../extension/src/extension-actions.js';
 import { createClipboardService } from '../extension/src/clipboard-service.js';
 import { getPageInfo } from '../extension/src/page-info-provider.js';
+import { COPY_MODES } from '../extension/src/link-builder.js';
+import { ID_NOT_FOUND } from '../extension/src/work-package-id.js';
 
 test('copy uses the supplied tab, not a subsequent active-tab lookup', async () => {
   const reads = [], writes = [], states = [];
   const copy = createCopyAction({}, {
     pageInfo: async (id) => { reads.push(id); return { title: `Tab ${id}`, url: `https://host/${id}`, isOpenProject: false }; },
     clipboard: { writeText: async (text) => writes.push(text) },
-    feedback: { show: async (...state) => states.push(state) },
+    feedback: { show: async (tabId, success) => states.push([tabId, success]) },
   });
   assert.deepEqual(await Promise.all([copy({ id: 1 }), copy({ id: 2 })]), [true, true]);
   assert.deepEqual(reads, [1, 2]);
@@ -21,7 +23,7 @@ test('restricted page and denied clipboard produce error feedback and recover', 
   const copy = createCopyAction({}, {
     pageInfo: async (id) => { if (id === 1) throw new Error('Restricted'); return { title: 'T', url: 'https://host/', isOpenProject: false }; },
     clipboard: { writeText: async (text) => { writes.push(text); if (writes.length === 1) throw new Error('Denied'); } },
-    feedback: { show: async (...state) => states.push(state) },
+    feedback: { show: async (tabId, success) => states.push([tabId, success]) },
   });
   assert.equal(await copy({ id: 1 }), false);
   assert.equal(await copy({ id: 2 }), false);
@@ -76,4 +78,18 @@ test('use worker clipboard when the browser exposes the modern API', async () =>
   const service = createClipboardService({}, { writeText: async (text) => writes.push(text) });
   await service.writeText('modern clipboard');
   assert.deepEqual(writes, ['modern clipboard']);
+});
+
+test('ID failure leaves clipboard unchanged, explains why, and does not change toolbar mode', async () => {
+  const writes = [], states = [];
+  const copy = createCopyAction({}, {
+    pageInfo: async () => ({ title: 'Task without an ID', url: 'https://host/work_packages/7/activity', isOpenProject: true }),
+    clipboard: { writeText: async (text) => writes.push(text) },
+    feedback: { show: async (...state) => states.push(state) },
+  });
+  assert.equal(await copy({ id: 1 }, COPY_MODES.WORK_PACKAGE_ID), false);
+  assert.deepEqual(writes, []);
+  assert.deepEqual(states, [[1, false, ID_NOT_FOUND]]);
+  assert.equal(await copy({ id: 1 }), true);
+  assert.deepEqual(writes, ['[Task without an ID](https://host/work_packages/7)']);
 });

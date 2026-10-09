@@ -1,3 +1,5 @@
+import { ID_NOT_FOUND } from './work-package-id.js';
+
 export const DEFAULT_TITLE = 'Copy OpenProject Link as Markdown';
 // Absolute extension paths: the worker lives in /src/, not beside /icons/.
 const icons = (state) => Object.fromEntries([16, 32, 48, 128].map((size) => [size, `/icons/${state}-${size}.png`]));
@@ -13,7 +15,7 @@ export function createFeedback(api = chrome) {
     ]);
   }
   return {
-    async show(tabId, success) {
+    async show(tabId, success, errorCode) {
       clearTimeout(timers.get(tabId));
       const revision = (revisions.get(tabId) ?? 0) + 1;
       revisions.set(tabId, revision);
@@ -23,6 +25,8 @@ export function createFeedback(api = chrome) {
         api.action.setBadgeBackgroundColor({ tabId, color: '#B42318' }),
         api.action.setTitle({ tabId, title: success
           ? 'Ссылка скопирована'
+          : errorCode === ID_NOT_FOUND
+          ? 'Work package ID not found in parentheses in this OpenProject page title.'
           : 'Не удалось скопировать. Страница недоступна расширению или браузер запретил буфер обмена.' }),
       ]);
       if (revisions.get(tabId) !== revision) return;

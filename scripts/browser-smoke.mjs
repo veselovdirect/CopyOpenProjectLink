@@ -26,7 +26,12 @@ await writeFile(manifestPath, JSON.stringify(manifest));
 const server = createServer((request, response) => {
   response.setHeader('Content-Type', 'text/html; charset=utf-8');
   const ordinary = request.url.startsWith('/ordinary');
-  response.end(`<!doctype html><head><title>${ordinary ? 'Ordinary [title]' : 'Task [title] - OpenProject'}</title>${ordinary ? '' : '<meta name="openproject_initializer">'}</head><body><a href="https://different.invalid/">Different destination</a><iframe src="/ordinary-frame"></iframe></body>`);
+  const title = request.url.includes('/112903')
+    ? 'Ошибка: Не работает состояние с условием "не определено" (#112903) | VisualEditor | OpenProject'
+    : ordinary ? 'Ordinary [title]' : request.url.startsWith('/missing')
+    ? 'Task without an ID - OpenProject' : request.url.includes('/112554')
+    ? 'Task (112554) - OpenProject' : 'Task [title] (OP-42) - OpenProject';
+  response.end(`<!doctype html><head><title>${title}</title>${ordinary ? '' : '<meta name="openproject_initializer">'}</head><body><a href="https://different.invalid/">Different destination</a><iframe src="/ordinary-frame"></iframe></body>`);
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 let context;
@@ -41,17 +46,26 @@ try {
   worker.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
   const origin = `http://127.0.0.1:${server.address().port}`;
   const page = await context.newPage();
-  const copy = async (url) => {
+  const copy = async (url, mode) => {
     await page.goto(url);
     await page.bringToFront();
-    return worker.evaluate(async ({ url }) => {
+    return worker.evaluate(async ({ url, mode }) => {
       const tabs = await chrome.tabs.query({});
       const tab = tabs.find((tab) => tab.url === url);
       if (!tab) throw new Error('Fixture tab missing');
       // Native Event objects cannot be dispatched from JS; test the shared action pipeline.
-      const success = await globalThis.testCopy(tab);
+      const success = await globalThis.testCopy(tab, mode);
       return { success, badge: await chrome.action.getBadgeText({ tabId: tab.id }), popup: await chrome.action.getPopup({ tabId: tab.id }), title: await chrome.action.getTitle({ tabId: tab.id }) };
-    }, { url });
+    }, { url, mode });
+  };
+  const paste = async () => {
+    await page.evaluate(() => {
+      const field = document.getElementById('paste') || document.createElement('textarea');
+      field.id = 'paste'; field.value = ''; document.body.append(field);
+    });
+    await page.locator('#paste').focus();
+    await page.keyboard.press('Control+V');
+    return page.locator('#paste').inputValue();
   };
   const result = await copy(`${origin}/projects/demo/work_packages/OP-42/activity?x=1#comment`);
   console.log('OpenProject real clipboard result:', result);
@@ -60,16 +74,29 @@ try {
   assert.equal(result.badge, '');
   console.log('Browser:', await worker.evaluate(() => navigator.userAgent));
   // Clipboard verification uses a real paste action into a fixture textarea (no read permission).
-  await page.evaluate(() => { const field = document.createElement('textarea'); field.id = 'paste'; document.body.append(field); });
-  await page.locator('#paste').focus();
-  await page.keyboard.press('Control+V');
-  assert.equal(await page.locator('#paste').inputValue(), `[Task \\[title\\] \\- OpenProject](${origin}/work_packages/OP-42)`);
+  assert.equal(await paste(), `[Task \\[title\\] \\(OP\\-42\\) \\- OpenProject](${origin}/work_packages/OP-42)`);
+  const taskUrl = `${origin}/projects/demo/work_packages/OP-42/relations?x=1#comment`;
+  assert.equal((await copy(taskUrl, 'work-package-id')).success, true);
+  assert.equal(await paste(), `[OP\\-42](${origin}/work_packages/OP-42)`);
+  // A prior ID choice must not change the default toolbar action.
+  assert.equal((await copy(taskUrl)).success, true);
+  assert.equal(await paste(), `[Task \\[title\\] \\(OP\\-42\\) \\- OpenProject](${origin}/work_packages/OP-42)`);
+  assert.equal((await copy(`${origin}/notifications/details/112554/files?facet=all`, 'work-package-id')).success, true);
+  assert.equal(await paste(), `[112554](${origin}/work_packages/112554)`);
+  assert.equal((await copy(`${origin}/work_packages/112903/activity?facet=all#comment`, 'work-package-id')).success, true);
+  assert.equal(await paste(), `[\\#112903](${origin}/work_packages/112903)`);
   const ordinaryUrl = `${origin}/ordinary?q=keep#fragment`;
   assert.equal((await copy(ordinaryUrl)).success, true);
-  await page.evaluate(() => { const field = document.createElement('textarea'); field.id = 'paste'; document.body.append(field); });
-  await page.locator('#paste').focus();
-  await page.keyboard.press('Control+V');
-  assert.equal(await page.locator('#paste').inputValue(), `[Ordinary \\[title\\]](${ordinaryUrl})`);
+  const ordinaryText = `[Ordinary \\[title\\]](${ordinaryUrl})`;
+  assert.equal(await paste(), ordinaryText);
+  const missing = await copy(`${origin}/missing`, 'work-package-id');
+  assert.equal(missing.success, false);
+  assert.equal(missing.badge, '!');
+  assert.match(missing.title, /ID not found/);
+  assert.equal(await paste(), ordinaryText);
+  const ordinaryId = await copy(ordinaryUrl, 'work-package-id');
+  assert.equal(ordinaryId.success, false);
+  assert.equal(await paste(), ordinaryText);
   assert.deepEqual(await worker.evaluate(() => chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] })), []);
   let resetTitle;
   for (let attempt = 0; attempt < 16; attempt++) {
@@ -89,7 +116,7 @@ try {
   });
   assert.deepEqual(denied, { success: false, badge: '!' });
   assert.deepEqual(errors, []);
-  console.log('Browser clipboard, normalized and ordinary URLs, no popup and restricted-page handling: OK');
+  console.log('Browser clipboard, title/ID modes, unchanged toolbar default, missing-ID feedback, no popup and restricted pages: OK');
 } finally {
   await context?.close();
   await new Promise((resolve) => server.close(resolve));
