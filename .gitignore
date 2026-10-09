@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.test-profile/
+*.log
+docs/
+marketing/
+scripts/promo.mjs
+/CopyOpenProjectLink/

@@ -1,0 +1,15 @@
+{
+  "name": "copy-openproject-link",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Copy the current page as a Markdown link, with OpenProject work package normalization.",
+  "scripts": {
+    "test": "node --test",
+    "check": "node scripts/check.mjs",
+    "icons": "node scripts/icons.mjs",
+    "package": "node scripts/package.mjs"
+  },
+  "engines": { "node": ">=20" },
+  "devDependencies": { "sharp": "^0.34.5" }
+}

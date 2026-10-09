@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Copy OpenProject Link",
+  "version": "1.0.0",
+  "description": "Copy the current page as Markdown. Automatically resolve OpenProject work package links.",
+  "minimum_chrome_version": "116",
+  "permissions": ["activeTab", "scripting", "contextMenus", "clipboardWrite", "offscreen"],
+  "background": { "service_worker": "src/background.js", "type": "module" },
+  "action": {
+    "default_title": "Copy OpenProject Link as Markdown",
+    "default_icon": {
+      "16": "icons/default-16.png",
+      "32": "icons/default-32.png",
+      "48": "icons/default-48.png",
+      "128": "icons/default-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/default-16.png",
+    "32": "icons/default-32.png",
+    "48": "icons/default-48.png",
+    "128": "icons/default-128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'none'"
+  }
+}
