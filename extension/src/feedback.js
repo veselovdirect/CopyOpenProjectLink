@@ -24,13 +24,14 @@ export function createFeedback(api = chrome) {
         api.action.setIcon({ tabId, path: icons(success ? 'success' : 'default') }),
         api.action.setBadgeText({ tabId, text: success ? '' : '!' }),
         api.action.setBadgeBackgroundColor({ tabId, color: '#B42318' }),
+        // Keep feedback tooltips in English, consistent with the default tooltip and settings.
         api.action.setTitle({ tabId, title: success
-          ? 'Ссылка скопирована'
+          ? 'Link copied'
           : errorCode === ID_NOT_FOUND
           ? 'Work package ID not found in parentheses in this OpenProject page title.'
           : errorCode === HIGHLIGHT_UNAVAILABLE
-          ? 'Не удалось скопировать ссылку на выделение. Нужен доступный, однозначно определяемый текст основной страницы вне полей ввода.'
-          : 'Не удалось скопировать. Страница недоступна расширению или браузер запретил буфер обмена.' }),
+          ? 'Could not copy the link to the highlight. Select accessible text that can be uniquely identified on the main page, outside input fields.'
+          : 'Could not copy. The extension cannot access this page, or the browser blocked clipboard access.' }),
       ]);
       if (revisions.get(tabId) !== revision) return;
       timers.set(tabId, setTimeout(() => {

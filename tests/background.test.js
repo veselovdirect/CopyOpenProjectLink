@@ -70,8 +70,8 @@ test('toolbar and link context menu share the page pipeline and contain errors',
     for (let i = 0; i < 10 && writes.length < 6; i++) await new Promise(setImmediate);
     assert.equal(writes[5], '[Task \\(112554\\)](https://host/wp/112554)');
     for (let i = 0; i < 10 && titles.size < 3; i++) await new Promise(setImmediate);
-    assert.equal(titles.get(17), 'Ссылка скопирована');
-    assert.equal(titles.get(18), 'Ссылка скопирована');
+    assert.equal(titles.get(17), 'Link copied');
+    assert.equal(titles.get(18), 'Link copied');
   } finally {
     listeners.removed?.(17);
     listeners.removed?.(18);
