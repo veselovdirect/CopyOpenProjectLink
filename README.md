@@ -27,12 +27,13 @@ To install from a ZIP you built yourself, extract it to a permanent folder and s
 
 ## Usage
 
-Open a page and click the icon to copy a Markdown link with the page title. The right-click menu offers two choices under **Copy Page Link as Markdown**:
+Open a page and click the icon to copy a Markdown link with the page title. The right-click menu offers these choices under **Copy Page Link as Markdown**:
 
 - **Use page title** — use the full page title as the link text.
 - **Use work package ID** — use the ID in parentheses in an OpenProject page title as the link text, for example `[112554](https://host/wp/112554)`.
+- **Copy link to highlight** — appears when text is selected on an HTTP(S) page. Use the selected text as the Markdown label and link directly to that passage.
 
-The toolbar icon always uses the page title, regardless of the last menu choice. Paste the result with Ctrl+V. Even when the menu is opened on a link or inside an iframe, the extension copies the tab's top-level page.
+The toolbar icon always uses the page title, regardless of the last menu choice. Paste the result with Ctrl+V. The page-title and work-package-ID choices always copy the tab's top-level page, even when their menu is opened on a link or inside an iframe.
 
 ID mode supports numeric and project-prefixed markers such as `(112554)`, `(OP-20237)`, and `(#112554)`. A leading `#` is preserved in the link text when present in the title; it is not added when absent and does not affect the URL. If several parentheses contain valid IDs, the last one is used. If the page is not OpenProject or its title contains no valid ID marker, the clipboard stays unchanged and the icon shows an error with an explanation.
 
@@ -50,6 +51,22 @@ https://host/notifications/details/112554/files?facet=all
 
 URLs are normalized only when `<meta name="openproject_initializer">` is present in the document's `head`. Ordinary pages and unrecognized routes retain their query strings and fragments. The link text uses either the full `document.title` or its work package ID marker, depending on the selected mode. Markdown characters are escaped, and parentheses in URLs are encoded to keep the link valid.
 
+## Copy a link to selected text
+
+1. Select a passage in the main page.
+2. Right-click the selection and choose **Copy Page Link as Markdown → Copy link to highlight**.
+3. Paste the Markdown link. Its label contains the selected text; line breaks are flattened to spaces and Markdown characters are escaped.
+
+For example, selecting `Selected text` can produce:
+
+```text
+[Selected text](https://host/article#:~:text=Selected%20text)
+```
+
+The extension uses [Text Fragments](https://web.dev/articles/text-fragments) and a locally bundled [GoogleChromeLabs generator](https://github.com/GoogleChromeLabs/text-fragments-polyfill). The generator can add surrounding context to distinguish repeated phrases and use start/end text for selections spanning paragraphs. The original page path, query and ordinary anchor are preserved; an existing text directive is replaced. OpenProject URLs are not shortened in this mode, so the link retains the view containing the passage.
+
+Selections inside frames, input fields or editable content are unsupported. If the selection changes before it can be read, is ambiguous, or cannot be processed, the clipboard stays unchanged and the extension shows an error. Opening the link requires a browser with Text Fragments support; highlighting also depends on the target text still being present and available when the destination page loads.
+
 ## URL normalization
 
 - `/projects/{project}/work_packages/{id}` becomes `/wp/{id}`. Direct `/work_packages/{id}` and notification detail URLs use the same short form.
@@ -59,12 +76,12 @@ URLs are normalized only when `<meta name="openproject_initializer">` is present
 
 ## Privacy and permissions
 
-The extension uses no servers, analytics, registration, network requests, or persistent content scripts. URLs and titles are not stored. Page data is read only when you invoke the extension and is used to write text to the clipboard. The hidden clipboard document closes after each operation.
+The extension uses no servers, analytics, registration, network requests, or persistent content scripts. URLs, titles and selections are not stored. Page data is read only when you invoke the extension and is used to write text to the clipboard. Highlight generation reads the selection and surrounding page text locally; the copied URL contains text needed to find the passage. The hidden clipboard document closes after each operation.
 
 | Permission | Purpose |
 | --- | --- |
 | `activeTab` | Temporary access to the tab where you invoke the extension |
-| `scripting` | Read `document.title`, the URL, and the OpenProject meta marker from the main document |
+| `scripting` | Read page information and, for the highlight action, generate a Text Fragment from the main document's selection |
 | `contextMenus` | Add the right-click menu item |
 | `clipboardWrite` | Write Markdown as plain text |
 | `offscreen` | Access the clipboard without a visible window, including on HTTP pages |
@@ -88,7 +105,7 @@ npm install
 npm run icons
 ```
 
-The only development dependency is `sharp`; it is not included in the extension. The source SVG files are in `assets`.
+The only development dependency is `sharp`; it is not included in the extension. The source SVG files are in `assets`. The highlight generator is bundled in `extension/vendor`; its source, pinned version, adaptation and Apache-2.0 license are recorded there. No installation or runtime download is needed for it.
 
 ## Architecture
 
@@ -97,6 +114,7 @@ Components are in `extension/src`:
 - `page-info-provider.js` and `openproject-detector.js` — read the page title and URL, and detect OpenProject.
 - `work-package-url-resolver.js` — normalize work package URLs.
 - `work-package-id.js` — share the ID format and extract the ID marker from a page title.
+- `highlight-info-provider.js` and `highlight-link.js` — read a selection, generate a unique Text Fragment in the isolated world and format its Markdown link.
 - `markdown-formatter.js` and `link-builder.js` — build the Markdown link.
 - `clipboard-service.js` and `offscreen.js` — write text to the clipboard.
 - `background.js` and `extension-actions.js` — handle toolbar clicks and context menu actions.

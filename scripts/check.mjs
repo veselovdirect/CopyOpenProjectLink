@@ -23,4 +23,7 @@ for (const name of await readdir(new URL('src/', extension))) {
   const result = spawnSync(process.execPath, ['--check', fileURLToPath(new URL(`src/${name}`, extension))], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
 }
+await readFile(new URL('vendor/LICENSE.txt', extension));
+const vendorCheck = spawnSync(process.execPath, ['--check', fileURLToPath(new URL('vendor/text-fragments.js', extension))], { encoding: 'utf8' });
+assert.equal(vendorCheck.status, 0, vendorCheck.stderr);
 console.log('Manifest, local assets, icon sizes and JavaScript syntax: OK');

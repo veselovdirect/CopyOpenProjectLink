@@ -1,4 +1,5 @@
 import { ID_NOT_FOUND } from './work-package-id.js';
+import { HIGHLIGHT_UNAVAILABLE } from './highlight-link.js';
 
 export const DEFAULT_TITLE = 'Copy OpenProject Link as Markdown';
 // Absolute extension paths: the worker lives in /src/, not beside /icons/.
@@ -27,6 +28,8 @@ export function createFeedback(api = chrome) {
           ? 'Ссылка скопирована'
           : errorCode === ID_NOT_FOUND
           ? 'Work package ID not found in parentheses in this OpenProject page title.'
+          : errorCode === HIGHLIGHT_UNAVAILABLE
+          ? 'Не удалось скопировать ссылку на выделение. Нужен доступный, однозначно определяемый текст основной страницы вне полей ввода.'
           : 'Не удалось скопировать. Страница недоступна расширению или браузер запретил буфер обмена.' }),
       ]);
       if (revisions.get(tabId) !== revision) return;

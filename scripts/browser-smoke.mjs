@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { createServer } from 'node:http';
 import { mkdtemp, rm, cp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.COPY_LINK_PLAYWRIGHT || 'playwright');
@@ -31,7 +31,15 @@ const server = createServer((request, response) => {
     : ordinary ? 'Ordinary [title]' : request.url.startsWith('/missing')
     ? 'Task without an ID - OpenProject' : request.url.includes('/112554')
     ? 'Task (112554) - OpenProject' : 'Task [title] (OP-42) - OpenProject';
-  response.end(`<!doctype html><head><title>${title}</title>${ordinary ? '' : '<meta name="openproject_initializer">'}</head><body><a href="https://different.invalid/">Different destination</a><iframe src="/ordinary-frame"></iframe></body>`);
+  const content = `
+    <p>First context before <span id="first">Repeated target phrase</span> with a first ending.</p>
+    <div style="height:1600px"></div>
+    <p>Second context before <span id="second">Repeated target phrase</span> with a second ending.</p>
+    <p id="cyrillic">Выделенный текст [пример] — проверка ссылки.</p>
+    <div id="multiple"><p>Opening words in the first paragraph.</p><p>Closing words in the second paragraph.</p></div>
+    <p id="editable" contenteditable="true">Editable text cannot be linked.</p>
+    <div style="height:1200px"></div>`;
+  response.end(`<!doctype html><head><title>${title}</title>${ordinary ? '' : '<meta name="openproject_initializer">'}</head><body><a href="https://different.invalid/">Different destination</a>${request.url.startsWith('/ordinary-frame') ? '' : '<iframe src="/ordinary-frame"></iframe>'}${content}</body>`);
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 let context;
@@ -46,17 +54,20 @@ try {
   worker.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
   const origin = `http://127.0.0.1:${server.address().port}`;
   const page = await context.newPage();
-  const copy = async (url, mode) => {
-    await page.goto(url);
+  const invoke = async (mode, info) => {
     await page.bringToFront();
-    return worker.evaluate(async ({ url, mode }) => {
+    return worker.evaluate(async ({ url, mode, info }) => {
       const tabs = await chrome.tabs.query({});
       const tab = tabs.find((tab) => tab.url === url);
       if (!tab) throw new Error('Fixture tab missing');
       // Native Event objects cannot be dispatched from JS; test the shared action pipeline.
-      const success = await globalThis.testCopy(tab, mode);
+      const success = await globalThis.testCopy(tab, mode, info);
       return { success, badge: await chrome.action.getBadgeText({ tabId: tab.id }), popup: await chrome.action.getPopup({ tabId: tab.id }), title: await chrome.action.getTitle({ tabId: tab.id }) };
-    }, { url, mode });
+    }, { url: page.url(), mode, info });
+  };
+  const copy = async (url, mode) => {
+    await page.goto(url);
+    return invoke(mode);
   };
   const paste = async () => {
     await page.evaluate(() => {
@@ -85,6 +96,55 @@ try {
   assert.equal(await paste(), `[112554](${origin}/wp/112554)`);
   assert.equal((await copy(`${origin}/work_packages/112903/activity?facet=all#comment`, 'work-package-id')).success, true);
   assert.equal(await paste(), `[\\#112903](${origin}/wp/112903)`);
+  const highlightUrl = `${origin}/projects/demo/work_packages/OP-42/activity?highlight=1#section`;
+  await page.goto(highlightUrl);
+  const select = async (id) => page.evaluate((id) => {
+    const range = document.createRange();
+    range.selectNodeContents(document.getElementById(id));
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection.toString();
+  }, id);
+  let selected = await select('second');
+  assert.equal((await invoke('highlight', { selectionText: selected, frameId: 0 })).success, true);
+  const repeatedLink = await paste();
+  assert.ok(repeatedLink.startsWith(`[Repeated target phrase](${highlightUrl}:~:text=`));
+  const targetUrl = repeatedLink.slice(repeatedLink.indexOf('](') + 2, -1);
+  assert.match(targetUrl, /-,|,-/); // Repeated text needs disambiguating context.
+  // Follow the copied link with a user gesture in a new top-level document.
+  await page.evaluate((url) => {
+    const link = document.createElement('a');
+    link.id = 'follow-highlight'; link.href = url; link.target = '_blank'; link.rel = 'noopener';
+    link.textContent = 'Follow highlight'; document.body.prepend(link);
+  }, targetUrl);
+  const opened = context.waitForEvent('page');
+  await page.locator('#follow-highlight').click();
+  const destination = await opened;
+  await destination.waitForLoadState();
+  await destination.waitForFunction(() => {
+    const rect = document.getElementById('second').getBoundingClientRect();
+    return window.scrollY > 1000 && rect.top >= 0 && rect.top < innerHeight;
+  });
+  await destination.close();
+  selected = await select('cyrillic');
+  assert.equal((await invoke('highlight', { selectionText: selected })).success, true);
+  const cyrillicLink = await paste();
+  assert.ok(cyrillicLink.startsWith('[Выделенный текст \\[пример\\] — проверка ссылки\\.]('));
+  assert.match(cyrillicLink, /%D0|%D1/);
+  selected = await select('multiple');
+  assert.equal((await invoke('highlight', { selectionText: selected })).success, true);
+  const multiLink = await paste();
+  assert.match(multiLink, /first paragraph.*Closing words/);
+  assert.match(multiLink.split(':~:text=')[1], /,/); // A range across blocks, not one exact string.
+  selected = await select('editable');
+  assert.equal((await invoke('highlight', { selectionText: selected, editable: true })).success, false);
+  assert.equal(await paste(), multiLink);
+  selected = await select('second');
+  assert.equal((await invoke('highlight', { selectionText: selected, frameId: 2 })).success, false);
+  assert.equal(await paste(), multiLink);
+  assert.equal((await invoke('highlight', { selectionText: 'A stale selection' })).success, false);
+  assert.equal(await paste(), multiLink);
   const ordinaryUrl = `${origin}/ordinary?q=keep#fragment`;
   assert.equal((await copy(ordinaryUrl)).success, true);
   const ordinaryText = `[Ordinary \\[title\\]](${ordinaryUrl})`;
@@ -116,9 +176,11 @@ try {
   });
   assert.deepEqual(denied, { success: false, badge: '!' });
   assert.deepEqual(errors, []);
-  console.log('Browser clipboard, title/ID modes, unchanged toolbar default, missing-ID feedback, no popup and restricted pages: OK');
+  console.log('Browser clipboard, title/ID/highlight modes, repeated-text navigation, Cyrillic, multi-paragraph selection, failure recovery, no popup and restricted pages: OK');
 } finally {
   await context?.close();
   await new Promise((resolve) => server.close(resolve));
+  assert.equal(dirname(resolve(profile)), resolve(tmpdir()));
+  assert.ok(basename(profile).startsWith('copy-link-smoke-'));
   await rm(profile, { recursive: true, force: true });
 }

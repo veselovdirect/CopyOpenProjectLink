@@ -1,10 +1,12 @@
 import { resolveWorkPackageUrl } from './work-package-url-resolver.js';
 import { formatMarkdownLink } from './markdown-formatter.js';
 import { extractWorkPackageId, ID_NOT_FOUND } from './work-package-id.js';
+import { buildHighlightLink } from './highlight-link.js';
 
-export const COPY_MODES = Object.freeze({ TITLE: 'title', WORK_PACKAGE_ID: 'work-package-id' });
+export const COPY_MODES = Object.freeze({ TITLE: 'title', WORK_PACKAGE_ID: 'work-package-id', HIGHLIGHT: 'highlight' });
 
 export function buildPageLink(page, mode = COPY_MODES.TITLE) {
+  if (mode === COPY_MODES.HIGHLIGHT) return buildHighlightLink(page);
   let text = page.title;
   if (mode === COPY_MODES.WORK_PACKAGE_ID) {
     text = page.isOpenProject ? extractWorkPackageId(page.title) : null;

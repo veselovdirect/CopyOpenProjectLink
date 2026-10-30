@@ -1,4 +1,4 @@
-import { createCopyAction, MENU_ID, MENU_TITLE, MENU_TITLE_ID, MENU_WORK_PACKAGE_ID } from './extension-actions.js';
+import { createCopyAction, MENU_ID, MENU_TITLE, MENU_TITLE_ID, MENU_WORK_PACKAGE_ID, MENU_HIGHLIGHT_ID } from './extension-actions.js';
 import { COPY_MODES } from './link-builder.js';
 import { createFeedback } from './feedback.js';
 
@@ -13,8 +13,9 @@ chrome.runtime.onInstalled.addListener(() => {
       for (const item of [
         { id: MENU_TITLE_ID, title: 'Use page title' },
         { id: MENU_WORK_PACKAGE_ID, title: 'Use work package ID' },
+        { id: MENU_HIGHLIGHT_ID, title: 'Copy link to highlight', contexts: ['selection'], documentUrlPatterns: ['http://*/*', 'https://*/*'] },
       ]) {
-        chrome.contextMenus.create({ ...item, parentId: MENU_ID, contexts: ['all'] }, () => {
+        chrome.contextMenus.create({ contexts: ['all'], ...item, parentId: MENU_ID }, () => {
           // Consume install-time errors without producing an unhandled exception.
           void chrome.runtime.lastError;
         });
@@ -25,8 +26,9 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.action.onClicked.addListener((tab) => { void copyPage(tab); });
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  // Deliberately ignore info.linkUrl and info.frameUrl: always copy the top-level page.
+  // Page modes use the top-level page; highlight mode validates the selection context.
   if (info.menuItemId === MENU_TITLE_ID) void copyPage(tab, COPY_MODES.TITLE);
   else if (info.menuItemId === MENU_WORK_PACKAGE_ID) void copyPage(tab, COPY_MODES.WORK_PACKAGE_ID);
+  else if (info.menuItemId === MENU_HIGHLIGHT_ID) void copyPage(tab, COPY_MODES.HIGHLIGHT, info);
 });
 chrome.tabs.onRemoved.addListener((tabId) => feedback.forget(tabId));

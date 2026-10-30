@@ -22,8 +22,12 @@ test('toolbar and link context menu share the page pipeline and contain errors',
       setTitle: async ({ tabId, title }) => { titles.set(tabId, title); },
     },
     tabs: { onRemoved: event('removed') },
-    scripting: { executeScript: async ({ target }) => {
+    scripting: { executeScript: async ({ target, files, args }) => {
       injected.push(target);
+      if (files) return [{ frameId: 0 }];
+      if (target.tabId === 21) return [{ frameId: 0, result: {
+        text: args[0], url: 'https://host/21?keep#fragment', fragment: { textStart: args[0] },
+      } }];
       const task = target.tabId === 19;
       return [{ frameId: 0, result: {
         title: task ? 'Task (112554)' : `Page ${target.tabId}`,
@@ -41,6 +45,7 @@ test('toolbar and link context menu share the page pipeline and contain errors',
       { id: parentId, title: 'Copy Page Link as Markdown', contexts: ['all'] },
       { id: `${parentId}-title`, title: 'Use page title', parentId, contexts: ['all'] },
       { id: `${parentId}-id`, title: 'Use work package ID', parentId, contexts: ['all'] },
+      { id: `${parentId}-highlight`, title: 'Copy link to highlight', parentId, contexts: ['selection'], documentUrlPatterns: ['http://*/*', 'https://*/*'] },
     ]);
     listeners.menu({ menuItemId: `${parentId}-title`, linkUrl: 'https://wrong.invalid/', frameUrl: 'https://wrong-frame.invalid/' }, { id: 17 });
     listeners.action({ id: 18 });
@@ -56,6 +61,9 @@ test('toolbar and link context menu share the page pipeline and contain errors',
     listeners.menu({ menuItemId: 'another-menu' }, { id: 20 });
     listeners.menu({ menuItemId: parentId }, { id: 20 });
     assert.equal(injected.length, 4);
+    listeners.menu({ menuItemId: `${parentId}-highlight`, selectionText: 'Selected text', frameId: 0, linkUrl: 'https://wrong.invalid/' }, { id: 21 });
+    for (let i = 0; i < 10 && writes.length < 5; i++) await new Promise(setImmediate);
+    assert.equal(writes[4], '[Selected text](https://host/21?keep#fragment:~:text=Selected%20text)');
     for (let i = 0; i < 10 && titles.size < 3; i++) await new Promise(setImmediate);
     assert.equal(titles.get(17), 'Ссылка скопирована');
     assert.equal(titles.get(18), 'Ссылка скопирована');
@@ -63,6 +71,7 @@ test('toolbar and link context menu share the page pipeline and contain errors',
     listeners.removed?.(17);
     listeners.removed?.(18);
     listeners.removed?.(19);
+    listeners.removed?.(21);
     delete globalThis.chrome;
   }
 });
