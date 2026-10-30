@@ -6,6 +6,7 @@ test('toolbar and link context menu share the page pipeline and contain errors',
   const event = (name) => ({ addListener: (listener) => { listeners[name] = listener; } });
   const menus = [];
   globalThis.chrome = {
+    storage: { local: { get: async () => ({}) } },
     runtime: {
       id: 'test', onInstalled: event('installed'),
       getURL: (path) => `chrome-extension://test/${path}`,
@@ -42,9 +43,10 @@ test('toolbar and link context menu share the page pipeline and contain errors',
     listeners.installed();
     const parentId = 'copy-openproject-link-as-markdown';
     assert.deepEqual(menus, [
-      { id: parentId, title: 'Copy Page Link as Markdown', contexts: ['all'] },
-      { id: `${parentId}-title`, title: 'Use page title', parentId, contexts: ['all'] },
-      { id: `${parentId}-id`, title: 'Use work package ID', parentId, contexts: ['all'] },
+      { id: parentId, title: 'Copy link as Markdown', contexts: ['all'] },
+      { id: `${parentId}-title`, title: 'Page title', parentId, contexts: ['all'] },
+      { id: `${parentId}-short-title`, title: 'Short work package title', parentId, contexts: ['all'] },
+      { id: `${parentId}-id`, title: 'Work package ID', parentId, contexts: ['all'] },
       { id: `${parentId}-highlight`, title: 'Copy link to highlight', parentId, contexts: ['selection'], documentUrlPatterns: ['http://*/*', 'https://*/*'] },
     ]);
     listeners.menu({ menuItemId: `${parentId}-title`, linkUrl: 'https://wrong.invalid/', frameUrl: 'https://wrong-frame.invalid/' }, { id: 17 });
@@ -64,6 +66,9 @@ test('toolbar and link context menu share the page pipeline and contain errors',
     listeners.menu({ menuItemId: `${parentId}-highlight`, selectionText: 'Selected text', frameId: 0, linkUrl: 'https://wrong.invalid/' }, { id: 21 });
     for (let i = 0; i < 10 && writes.length < 5; i++) await new Promise(setImmediate);
     assert.equal(writes[4], '[Selected text](https://host/21?keep#fragment:~:text=Selected%20text)');
+    listeners.menu({ menuItemId: `${parentId}-short-title` }, { id: 19 });
+    for (let i = 0; i < 10 && writes.length < 6; i++) await new Promise(setImmediate);
+    assert.equal(writes[5], '[Task \\(112554\\)](https://host/wp/112554)');
     for (let i = 0; i < 10 && titles.size < 3; i++) await new Promise(setImmediate);
     assert.equal(titles.get(17), 'Ссылка скопирована');
     assert.equal(titles.get(18), 'Ссылка скопирована');

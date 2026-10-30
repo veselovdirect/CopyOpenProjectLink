@@ -1,6 +1,6 @@
 {
   "name": "copy-openproject-link",
-  "version": "1.2.0",
+  "version": "1.4.0",
   "private": true,
   "type": "module",
   "description": "Copy the current page as a Markdown link, with OpenProject work package normalization.",

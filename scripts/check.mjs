@@ -8,8 +8,9 @@ const manifest = JSON.parse(await readFile(new URL('manifest.json', extension), 
 assert.equal(manifest.manifest_version, 3);
 assert.equal(manifest.action.default_popup, undefined);
 assert.equal(manifest.host_permissions, undefined);
-assert.deepEqual(manifest.permissions.slice().sort(), ['activeTab', 'scripting', 'contextMenus', 'clipboardWrite', 'offscreen'].sort());
-for (const relative of [manifest.background.service_worker, 'offscreen.html', ...Object.values(manifest.icons), ...Object.values(manifest.action.default_icon)]) {
+assert.deepEqual(manifest.permissions.slice().sort(), ['activeTab', 'scripting', 'contextMenus', 'clipboardWrite', 'offscreen', 'storage'].sort());
+assert.deepEqual(manifest.options_ui, { page: 'options.html', open_in_tab: false });
+for (const relative of [manifest.background.service_worker, manifest.options_ui.page, 'options.css', 'offscreen.html', ...Object.values(manifest.icons), ...Object.values(manifest.action.default_icon)]) {
   await readFile(new URL(relative, extension));
 }
 for (const state of ['default', 'success']) {

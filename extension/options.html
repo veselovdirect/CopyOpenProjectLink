@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copy OpenProject Link — Settings</title>
+  <link rel="stylesheet" href="options.css">
+  <script type="module" src="src/options.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Copy OpenProject Link</h1>
+    <p>Choose what to copy when you click the extension button.</p>
+    <form id="settings">
+      <fieldset id="toolbar-modes" disabled>
+        <legend>Toolbar button action</legend>
+        <label>
+          <input type="radio" name="toolbarMode" value="title">
+          <span><strong>Page title</strong><small>Use the full page title as the link text.</small></span>
+        </label>
+        <label>
+          <input type="radio" name="toolbarMode" value="short-title">
+          <span><strong>Short work package title</strong><small>Use the task description and ID, without the type or project names.</small></span>
+        </label>
+        <label>
+          <input type="radio" name="toolbarMode" value="work-package-id">
+          <span><strong>Work package ID</strong><small>Use only the work package ID as the link text.</small></span>
+        </label>
+      </fieldset>
+    </form>
+    <p class="note">The last two actions require an OpenProject work package title with an ID. Otherwise, the clipboard stays unchanged and the button shows an error.</p>
+    <p class="note">Changes are saved automatically. Context menu choices remain independent.</p>
+    <p id="status" role="status" aria-live="polite">Loading settings…</p>
+  </main>
+</body>
+</html>

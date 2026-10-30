@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { createServer } from 'node:http';
-import { mkdtemp, rm, cp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, cp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -96,6 +96,39 @@ try {
   assert.equal(await paste(), `[112554](${origin}/wp/112554)`);
   assert.equal((await copy(`${origin}/work_packages/112903/activity?facet=all#comment`, 'work-package-id')).success, true);
   assert.equal(await paste(), `[\\#112903](${origin}/wp/112903)`);
+  assert.equal((await invoke('short-title')).success, true);
+  assert.equal(await paste(), `[Не работает состояние с условием "не определено" \\(\\#112903\\)](${origin}/wp/112903)`);
+  assert.equal((await invoke()).success, true);
+  assert.equal(await paste(), `[Ошибка: Не работает состояние с условием "не определено" \\(\\#112903\\) \\| VisualEditor \\| OpenProject](${origin}/wp/112903)`);
+  const options = await context.newPage();
+  await options.goto(await worker.evaluate(() => chrome.runtime.getURL('options.html')));
+  await options.waitForFunction(() => !document.getElementById('toolbar-modes').disabled);
+  assert.equal(await options.locator('input[value="title"]').isChecked(), true);
+  for (const mode of ['work-package-id', 'short-title', 'title']) {
+    await options.locator(`input[value="${mode}"]`).check();
+    await options.waitForFunction(() => document.getElementById('status').textContent === 'Saved.');
+    await options.reload();
+    await options.waitForFunction(() => !document.getElementById('toolbar-modes').disabled);
+    assert.equal(await options.locator(`input[value="${mode}"]`).isChecked(), true);
+    assert.equal((await invoke()).success, true);
+    const expected = mode === 'work-package-id' ? '\\#112903'
+      : mode === 'short-title' ? 'Не работает состояние с условием "не определено" \\(\\#112903\\)'
+      : 'Ошибка: Не работает состояние с условием "не определено" \\(\\#112903\\) \\| VisualEditor \\| OpenProject';
+    assert.equal(await paste(), `[${expected}](${origin}/wp/112903)`);
+    // Explicit menu choices must not overwrite the preference.
+    assert.equal((await invoke('work-package-id')).success, true);
+    assert.equal(await worker.evaluate(() => chrome.storage.local.get('toolbarCopyMode')).then((value) => value.toolbarCopyMode), mode);
+  }
+  await options.evaluate(() => { chrome.storage.local.set = async () => { throw new Error('Test write failure'); }; });
+  await options.locator('input[value="short-title"]').click();
+  await options.waitForFunction(() => document.getElementById('status').textContent.includes('Could not save'));
+  assert.equal(await options.locator('input[value="title"]').isChecked(), true);
+  await options.reload();
+  await options.waitForFunction(() => !document.getElementById('toolbar-modes').disabled);
+  await options.setViewportSize({ width: 560, height: 650 });
+  await mkdir(new URL('../.test-profile/', import.meta.url), { recursive: true });
+  await options.screenshot({ path: fileURLToPath(new URL('../.test-profile/options.png', import.meta.url)), fullPage: true });
+  await options.close();
   const highlightUrl = `${origin}/projects/demo/work_packages/OP-42/activity?highlight=1#section`;
   await page.goto(highlightUrl);
   const select = async (id) => page.evaluate((id) => {
@@ -148,6 +181,9 @@ try {
   const ordinaryUrl = `${origin}/ordinary?q=keep#fragment`;
   assert.equal((await copy(ordinaryUrl)).success, true);
   const ordinaryText = `[Ordinary \\[title\\]](${ordinaryUrl})`;
+  assert.equal(await paste(), ordinaryText);
+  const ordinaryShortTitle = await invoke('short-title');
+  assert.equal(ordinaryShortTitle.success, false);
   assert.equal(await paste(), ordinaryText);
   const missing = await copy(`${origin}/missing`, 'work-package-id');
   assert.equal(missing.success, false);

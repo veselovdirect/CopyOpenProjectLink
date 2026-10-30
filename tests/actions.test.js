@@ -9,6 +9,7 @@ import { ID_NOT_FOUND } from '../extension/src/work-package-id.js';
 test('copy uses the supplied tab, not a subsequent active-tab lookup', async () => {
   const reads = [], writes = [], states = [];
   const copy = createCopyAction({}, {
+    toolbarMode: async () => COPY_MODES.TITLE,
     pageInfo: async (id) => { reads.push(id); return { title: `Tab ${id}`, url: `https://host/${id}`, isOpenProject: false }; },
     clipboard: { writeText: async (text) => writes.push(text) },
     feedback: { show: async (tabId, success) => states.push([tabId, success]) },
@@ -21,6 +22,7 @@ test('copy uses the supplied tab, not a subsequent active-tab lookup', async () 
 test('restricted page and denied clipboard produce error feedback and recover', async () => {
   const states = [], writes = [];
   const copy = createCopyAction({}, {
+    toolbarMode: async () => COPY_MODES.TITLE,
     pageInfo: async (id) => { if (id === 1) throw new Error('Restricted'); return { title: 'T', url: 'https://host/', isOpenProject: false }; },
     clipboard: { writeText: async (text) => { writes.push(text); if (writes.length === 1) throw new Error('Denied'); } },
     feedback: { show: async (tabId, success) => states.push([tabId, success]) },
@@ -36,6 +38,7 @@ test('copy completion follows invocation order even when the second read finishe
   const pending = new Promise((resolve) => { release = resolve; });
   const writes = [];
   const copy = createCopyAction({}, {
+    toolbarMode: async () => COPY_MODES.TITLE,
     pageInfo: async (id) => { if (id === 1) await pending; return { title: String(id), url: `https://host/${id}` }; },
     clipboard: { writeText: async (text) => writes.push(text) },
     feedback: { show: async () => {} },
@@ -83,6 +86,7 @@ test('use worker clipboard when the browser exposes the modern API', async () =>
 test('ID failure leaves clipboard unchanged, explains why, and does not change toolbar mode', async () => {
   const writes = [], states = [];
   const copy = createCopyAction({}, {
+    toolbarMode: async () => COPY_MODES.TITLE,
     pageInfo: async () => ({ title: 'Task without an ID', url: 'https://host/work_packages/7/activity', isOpenProject: true }),
     clipboard: { writeText: async (text) => writes.push(text) },
     feedback: { show: async (...state) => states.push(state) },
@@ -90,6 +94,9 @@ test('ID failure leaves clipboard unchanged, explains why, and does not change t
   assert.equal(await copy({ id: 1 }, COPY_MODES.WORK_PACKAGE_ID), false);
   assert.deepEqual(writes, []);
   assert.deepEqual(states, [[1, false, ID_NOT_FOUND]]);
+  assert.equal(await copy({ id: 1 }, COPY_MODES.SHORT_TITLE), false);
+  assert.deepEqual(writes, []);
+  assert.deepEqual(states.at(-1), [1, false, ID_NOT_FOUND]);
   assert.equal(await copy({ id: 1 }), true);
   assert.deepEqual(writes, ['[Task without an ID](https://host/wp/7)']);
 });

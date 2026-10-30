@@ -1,0 +1,15 @@
+:root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+body { margin: 0; padding: 24px; color: CanvasText; background: Canvas; }
+main { max-width: 520px; margin: auto; }
+h1 { margin: 0 0 12px; font-size: 21px; }
+p { line-height: 1.5; }
+fieldset { padding: 0; margin: 24px 0 16px; border: 0; }
+legend { padding: 0; margin-bottom: 12px; font-weight: 600; }
+label { display: flex; align-items: flex-start; gap: 12px; padding: 14px; margin-bottom: 8px; border: 1px solid GrayText; border-radius: 8px; cursor: pointer; }
+label:has(input:checked) { border-color: Highlight; background: color-mix(in srgb, Highlight 10%, Canvas); }
+label:focus-within { outline: 2px solid Highlight; outline-offset: 2px; }
+input { margin: 4px 0 0; accent-color: Highlight; }
+strong { font-size: 14px; font-weight: 600; }
+small { display: block; margin-top: 4px; line-height: 1.5; font-size: 13px; }
+.note { font-size: 13px; }
+#status { min-height: 1.5em; font-size: 13px; font-weight: 600; }

@@ -55,6 +55,7 @@ test('highlight and page modes share clipboard ordering and recover after a fail
   const pending = new Promise((resolve) => { release = resolve; });
   const writes = [], states = [];
   const copy = createCopyAction({}, {
+    toolbarMode: async () => COPY_MODES.TITLE,
     pageInfo: async () => ({ title: 'Page', url: 'https://host/' }),
     highlightInfo: async (id, info) => {
       assert.equal(info.selectionText, highlight.text);

@@ -1,6 +1,6 @@
 # Copy OpenProject Link
 
-A Manifest V3 extension for copying the current page as a Markdown link. Click the extension icon or choose **Copy Page Link as Markdown** from the context menu. No popups, additional tabs, or system notifications appear.
+A Manifest V3 extension for copying the current page as a Markdown link. Click the extension icon or choose **Copy link as Markdown** from the context menu. No popups, additional tabs, or system notifications appear.
 
 ## Install without building
 
@@ -27,13 +27,16 @@ To install from a ZIP you built yourself, extract it to a permanent folder and s
 
 ## Usage
 
-Open a page and click the icon to copy a Markdown link with the page title. The right-click menu offers these choices under **Copy Page Link as Markdown**:
+Open a page and click the icon to copy a Markdown link with the page title. The right-click menu offers these choices under **Copy link as Markdown**:
 
-- **Use page title** — use the full page title as the link text.
-- **Use work package ID** — use the ID in parentheses in an OpenProject page title as the link text, for example `[112554](https://host/wp/112554)`.
+- **Page title** — use the full page title as the link text.
+- **Short work package title** — remove the prefix through the first `:` and the suffix starting at the second-to-last `|`, keeping the task description and ID. The URL uses `/wp/{id}`.
+- **Work package ID** — use the ID in parentheses in an OpenProject page title as the link text, for example `[112554](https://host/wp/112554)`.
 - **Copy link to highlight** — appears when text is selected on an HTTP(S) page. Use the selected text as the Markdown label and link directly to that passage.
 
-The toolbar icon always uses the page title, regardless of the last menu choice. Paste the result with Ctrl+V. The page-title and work-package-ID choices always copy the tab's top-level page, even when their menu is opened on a link or inside an iframe.
+The toolbar icon uses the action selected in the extension's settings; the default is **Page title**. Context menu choices do not change that setting. Paste the result with Ctrl+V. The full-title, short-title and work-package-ID choices always copy the tab's top-level page, even when their menu is opened on a link or inside an iframe.
+
+Short-title mode processes the raw page title before Markdown escaping. For example, `Bug: “Filter by text” returns unrelated work packages for Cyrillic queries (OP-20237) | OpenProject | OpenProject Community` becomes `“Filter by text” returns unrelated work packages for Cyrillic queries (OP-20237)`. Only the first colon in the task portion is removed; later colons and any pipes before the final two are preserved. Without a colon, no prefix is removed; with fewer than two pipes, no suffix is removed. This mode requires an OpenProject page and an ID marker in the resulting title; otherwise the clipboard stays unchanged and the icon shows an error.
 
 ID mode supports numeric and project-prefixed markers such as `(112554)`, `(OP-20237)`, and `(#112554)`. A leading `#` is preserved in the link text when present in the title; it is not added when absent and does not affect the URL. If several parentheses contain valid IDs, the last one is used. If the page is not OpenProject or its title contains no valid ID marker, the clipboard stays unchanged and the icon shows an error with an explanation.
 
@@ -49,12 +52,18 @@ https://host/notifications/details/112554/files?facet=all
 → [Task title](https://host/wp/112554)
 ```
 
-URLs are normalized only when `<meta name="openproject_initializer">` is present in the document's `head`. Ordinary pages and unrecognized routes retain their query strings and fragments. The link text uses either the full `document.title` or its work package ID marker, depending on the selected mode. Markdown characters are escaped, and parentheses in URLs are encoded to keep the link valid.
+URLs are normalized only when `<meta name="openproject_initializer">` is present in the document's `head`. Ordinary pages and unrecognized routes retain their query strings and fragments. The link text uses the full `document.title`, its shortened work package title or its work package ID marker, depending on the selected mode. Markdown characters are escaped, and parentheses in URLs are encoded to keep the link valid.
+
+## Configure the toolbar button
+
+Right-click the extension icon and open **Options** (the browser may label it **Extension options**). Alternatively, open the extension's details in the browser's extensions manager and choose **Extension options**.
+
+Choose **Page title**, **Short work package title** or **Work package ID**. The setting saves automatically in this browser profile and applies to the next toolbar click, including after restarting the browser. The default is **Page title**. Short-title and ID modes require an OpenProject page with an appropriate ID marker; on other pages, copying fails with feedback and leaves the clipboard unchanged. Context menu actions remain available independently of this preference.
 
 ## Copy a link to selected text
 
 1. Select a passage in the main page.
-2. Right-click the selection and choose **Copy Page Link as Markdown → Copy link to highlight**.
+2. Right-click the selection and choose **Copy link as Markdown → Copy link to highlight**.
 3. Paste the Markdown link. Its label contains the selected text; line breaks are flattened to spaces and Markdown characters are escaped.
 
 For example, selecting `Selected text` can produce:
@@ -76,7 +85,7 @@ Selections inside frames, input fields or editable content are unsupported. If t
 
 ## Privacy and permissions
 
-The extension uses no servers, analytics, registration, network requests, or persistent content scripts. URLs, titles and selections are not stored. Page data is read only when you invoke the extension and is used to write text to the clipboard. Highlight generation reads the selection and surrounding page text locally; the copied URL contains text needed to find the passage. The hidden clipboard document closes after each operation.
+The extension uses no servers, analytics, registration, network requests, or persistent content scripts. Only the toolbar action preference is stored locally; URLs, titles and selections are not stored. Page data is read only when you invoke the extension and is used to write text to the clipboard. Highlight generation reads the selection and surrounding page text locally; the copied URL contains text needed to find the passage. The hidden clipboard document closes after each operation.
 
 | Permission | Purpose |
 | --- | --- |
@@ -85,8 +94,9 @@ The extension uses no servers, analytics, registration, network requests, or per
 | `contextMenus` | Add the right-click menu item |
 | `clipboardWrite` | Write Markdown as plain text |
 | `offscreen` | Access the clipboard without a visible window, including on HTTP pages |
+| `storage` | Save the toolbar button's action locally in the browser profile |
 
-The extension does not request persistent host permissions, `tabs`, `clipboardRead`, `storage`, or `notifications`.
+The extension does not request persistent host permissions, `tabs`, `clipboardRead`, or `notifications`.
 
 ## Development
 
@@ -118,6 +128,7 @@ Components are in `extension/src`:
 - `markdown-formatter.js` and `link-builder.js` — build the Markdown link.
 - `clipboard-service.js` and `offscreen.js` — write text to the clipboard.
 - `background.js` and `extension-actions.js` — handle toolbar clicks and context menu actions.
+- `settings.js` and `options.js` — persist the toolbar action and manage the options page.
 - `feedback.js` — show the result on the extension icon.
 
 The modern Clipboard API is used when it is available in the service worker. Otherwise, a hidden `chrome.offscreen` document uses a DOM bridge based on `document.execCommand('copy')`: the Async Clipboard API requires focus, which a hidden document cannot receive.
