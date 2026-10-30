@@ -30,7 +30,7 @@ To install from a ZIP you built yourself, extract it to a permanent folder and s
 Open a page and click the icon to copy a Markdown link with the page title. The right-click menu offers two choices under **Copy Page Link as Markdown**:
 
 - **Use page title** — use the full page title as the link text.
-- **Use work package ID** — use the ID in parentheses in an OpenProject page title as the link text, for example `[112554](https://host/work_packages/112554)`.
+- **Use work package ID** — use the ID in parentheses in an OpenProject page title as the link text, for example `[112554](https://host/wp/112554)`.
 
 The toolbar icon always uses the page title, regardless of the last menu choice. Paste the result with Ctrl+V. Even when the menu is opened on a link or inside an iframe, the extension copies the tab's top-level page.
 
@@ -42,19 +42,20 @@ Example for a page titled `Task title`:
 
 ```text
 https://host/projects/demo/work_packages/OP-42/activity?facet=all#comment
-→ [Task title](https://host/work_packages/OP-42)
+→ [Task title](https://host/wp/OP-42)
 
 https://host/notifications/details/112554/files?facet=all
-→ [Task title](https://host/work_packages/112554)
+→ [Task title](https://host/wp/112554)
 ```
 
 URLs are normalized only when `<meta name="openproject_initializer">` is present in the document's `head`. Ordinary pages and unrecognized routes retain their query strings and fragments. The link text uses either the full `document.title` or its work package ID marker, depending on the selected mode. Markdown characters are escaped, and parentheses in URLs are encoded to keep the link valid.
 
 ## URL normalization
 
-- `/projects/{project}/work_packages/{id}` becomes `/work_packages/{id}`.
+- `/projects/{project}/work_packages/{id}` becomes `/wp/{id}`. Direct `/work_packages/{id}` and notification detail URLs use the same short form.
+- Already short `/wp/{id}` links are supported; view suffixes, query strings and fragments are removed.
 - The complete work package ID is preserved across all supported subsections, including `/wikis`.
-- For OpenProject installations under a subpath, that prefix is preserved: `/op/projects/demo/work_packages/42/activity` → `/op/work_packages/42`.
+- For OpenProject installations under a subpath, that prefix is preserved: `/op/projects/demo/work_packages/42/activity` → `/op/wp/42`.
 
 ## Privacy and permissions
 

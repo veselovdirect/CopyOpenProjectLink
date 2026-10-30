@@ -49,7 +49,7 @@ test('toolbar and link context menu share the page pipeline and contain errors',
     for (let i = 0; i < 10 && writes.length < 4; i++) await new Promise(setImmediate);
     assert.deepEqual(writes, [
       '[Page 17](https://host/17?keep#fragment)', '[Page 18](https://host/18?keep#fragment)',
-      '[112554](https://host/work_packages/112554)', '[Task \\(112554\\)](https://host/work_packages/112554)',
+      '[112554](https://host/wp/112554)', '[Task \\(112554\\)](https://host/wp/112554)',
     ]);
     assert.deepEqual(injected.map((item) => item.tabId), [17, 18, 19, 19]);
     assert.ok(injected.every((item) => item.frameIds.length === 1 && item.frameIds[0] === 0));

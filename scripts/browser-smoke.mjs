@@ -74,17 +74,17 @@ try {
   assert.equal(result.badge, '');
   console.log('Browser:', await worker.evaluate(() => navigator.userAgent));
   // Clipboard verification uses a real paste action into a fixture textarea (no read permission).
-  assert.equal(await paste(), `[Task \\[title\\] \\(OP\\-42\\) \\- OpenProject](${origin}/work_packages/OP-42)`);
+  assert.equal(await paste(), `[Task \\[title\\] \\(OP\\-42\\) \\- OpenProject](${origin}/wp/OP-42)`);
   const taskUrl = `${origin}/projects/demo/work_packages/OP-42/relations?x=1#comment`;
   assert.equal((await copy(taskUrl, 'work-package-id')).success, true);
-  assert.equal(await paste(), `[OP\\-42](${origin}/work_packages/OP-42)`);
+  assert.equal(await paste(), `[OP\\-42](${origin}/wp/OP-42)`);
   // A prior ID choice must not change the default toolbar action.
   assert.equal((await copy(taskUrl)).success, true);
-  assert.equal(await paste(), `[Task \\[title\\] \\(OP\\-42\\) \\- OpenProject](${origin}/work_packages/OP-42)`);
+  assert.equal(await paste(), `[Task \\[title\\] \\(OP\\-42\\) \\- OpenProject](${origin}/wp/OP-42)`);
   assert.equal((await copy(`${origin}/notifications/details/112554/files?facet=all`, 'work-package-id')).success, true);
-  assert.equal(await paste(), `[112554](${origin}/work_packages/112554)`);
+  assert.equal(await paste(), `[112554](${origin}/wp/112554)`);
   assert.equal((await copy(`${origin}/work_packages/112903/activity?facet=all#comment`, 'work-package-id')).success, true);
-  assert.equal(await paste(), `[\\#112903](${origin}/work_packages/112903)`);
+  assert.equal(await paste(), `[\\#112903](${origin}/wp/112903)`);
   const ordinaryUrl = `${origin}/ordinary?q=keep#fragment`;
   assert.equal((await copy(ordinaryUrl)).success, true);
   const ordinaryText = `[Ordinary \\[title\\]](${ordinaryUrl})`;

@@ -4,6 +4,7 @@ import { WORK_PACKAGE_ID_PATTERN as ID } from './work-package-id.js';
 export const WORK_PACKAGE_ROUTES = Object.freeze([
   new RegExp(`^(.*?)(?:/projects/[^/]+)?/work_packages/(${ID})(?:/|$)`),
   new RegExp(`^(.*?)/notifications/details/(${ID})(?:/|$)`),
+  new RegExp(`^(.*?)/wp/(${ID})(?:/|$)`),
 ]);
 
 export function resolveWorkPackageUrl(originalUrl, isOpenProject, routes = WORK_PACKAGE_ROUTES) {
@@ -19,7 +20,7 @@ export function resolveWorkPackageUrl(originalUrl, isOpenProject, routes = WORK_
     const match = url.pathname.match(route);
     if (match) {
       // Keep scheme, server, port and installation prefix; drop view/query/hash.
-      url.pathname = `${match[1]}/work_packages/${match[2]}`;
+      url.pathname = `${match[1]}/wp/${match[2]}`;
       url.search = '';
       url.hash = '';
       return url.href;

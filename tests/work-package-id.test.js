@@ -20,13 +20,13 @@ for (const [title, expected] of [
 
 test('ID mode changes link text only and keeps title mode as the default', () => {
   const page = { title: 'Update docs (112554)', url: 'https://host/notifications/details/112554/files?x=1#part', isOpenProject: true };
-  assert.equal(buildPageLink(page, COPY_MODES.WORK_PACKAGE_ID), '[112554](https://host/work_packages/112554)');
-  assert.equal(buildPageLink(page), '[Update docs \\(112554\\)](https://host/work_packages/112554)');
+  assert.equal(buildPageLink(page, COPY_MODES.WORK_PACKAGE_ID), '[112554](https://host/wp/112554)');
+  assert.equal(buildPageLink(page), '[Update docs \\(112554\\)](https://host/wp/112554)');
 });
 
 test('ID mode uses the title marker and never substitutes an ID from the URL', () => {
   const page = { title: 'Task (OP-42)', url: 'https://host/work_packages/999/activity', isOpenProject: true };
-  assert.equal(buildPageLink(page, COPY_MODES.WORK_PACKAGE_ID), '[OP\\-42](https://host/work_packages/999)');
+  assert.equal(buildPageLink(page, COPY_MODES.WORK_PACKAGE_ID), '[OP\\-42](https://host/wp/999)');
   assert.throws(() => buildPageLink({ ...page, title: 'Task without marker' }, COPY_MODES.WORK_PACKAGE_ID), { message: ID_NOT_FOUND });
 });
 
@@ -40,5 +40,5 @@ test('preserve # from the reported title in Markdown link text without adding it
     url: 'https://host/work_packages/112903/activity?facet=all#comment',
     isOpenProject: true,
   };
-  assert.equal(buildPageLink(page, COPY_MODES.WORK_PACKAGE_ID), '[\\#112903](https://host/work_packages/112903)');
+  assert.equal(buildPageLink(page, COPY_MODES.WORK_PACKAGE_ID), '[\\#112903](https://host/wp/112903)');
 });

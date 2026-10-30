@@ -91,5 +91,5 @@ test('ID failure leaves clipboard unchanged, explains why, and does not change t
   assert.deepEqual(writes, []);
   assert.deepEqual(states, [[1, false, ID_NOT_FOUND]]);
   assert.equal(await copy({ id: 1 }), true);
-  assert.deepEqual(writes, ['[Task without an ID](https://host/work_packages/7)']);
+  assert.deepEqual(writes, ['[Task without an ID](https://host/wp/7)']);
 });

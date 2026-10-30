@@ -14,19 +14,24 @@ const examples = [
   ['/projects/riedaktor/work_packages/112554/activity', '112554'],
   ['/projects/riedaktor/work_packages/112554/relations', '112554'],
   ['/work_packages/112554', '112554'],
+  ['/work_packages/OP-20237', 'OP-20237'],
   ['/work_packages/OP-20237/activity?x=1#comment-2', 'OP-20237'],
+  ['/wp/112554', '112554'],
+  ['/wp/OP-20237', 'OP-20237'],
+  ['/wp/OP-20237/activity?x=1#comment-2', 'OP-20237'],
 ];
 for (const [input, id] of examples) {
   test(`normalize ${input}`, () => {
     for (const origin of ['https://community.openproject.org', 'https://openproject.example.org', 'http://intranet:8080']) {
-      assert.equal(resolveWorkPackageUrl(origin + input, true), `${origin}/work_packages/${id}`);
+      assert.equal(resolveWorkPackageUrl(origin + input, true), `${origin}/wp/${id}`);
       assert.equal(resolveWorkPackageUrl(origin + input, false), origin + input);
     }
   });
 }
 test('preserve installation prefix and project names with escaped characters', () => {
-  assert.equal(resolveWorkPackageUrl('https://host/op/projects/my%20project/work_packages/7/activity?a#b', true), 'https://host/op/work_packages/7');
-  assert.equal(resolveWorkPackageUrl('https://host/op/notifications/details/TEAM-X-7/files', true), 'https://host/op/work_packages/TEAM-X-7');
+  assert.equal(resolveWorkPackageUrl('https://host/op/projects/my%20project/work_packages/7/activity?a#b', true), 'https://host/op/wp/7');
+  assert.equal(resolveWorkPackageUrl('https://host/op/notifications/details/TEAM-X-7/files', true), 'https://host/op/wp/TEAM-X-7');
+  assert.equal(resolveWorkPackageUrl('https://host/op/wp/TEAM-X-7?x=1#comment', true), 'https://host/op/wp/TEAM-X-7');
 });
 for (const input of [
   'https://host/projects/OP/work_packages?query=12#list', 'https://host/projects/OP/overview?x=1#y',
@@ -34,6 +39,8 @@ for (const input of [
   'https://host/work_packages/OP-20237evil', 'https://host/work_packages/-2',
   'https://host/work_packages/new', 'https://host/notifications/details/',
   'https://host/work_packages/123%2F456', 'not a URL', 'file:///work_packages/2',
+  'https://host/wp/OP-20237evil', 'https://host/wp/123%2F456',
+  'https://host/wp/new', 'https://host/wp?query=12#list',
 ]) {
   test(`preserve unresolved ${input}`, () => assert.equal(resolveWorkPackageUrl(input, true), input));
 }
@@ -58,6 +65,6 @@ test('normal page keeps exact URL and current title', () => {
   assert.equal(buildPageLink({ title: 'Chrome Extensions | Chrome for Developers', url: 'https://developer.chrome.com/docs/extensions/?a=1#b', isOpenProject: false }), '[Chrome Extensions \\| Chrome for Developers](https://developer.chrome.com/docs/extensions/?a=1#b)');
 });
 test('OpenProject title never becomes an ID; empty title remains empty', () => {
-  assert.equal(buildPageLink({ title: 'Some task title', url: 'https://host/projects/p/work_packages/OP-42/activity', isOpenProject: true }), '[Some task title](https://host/work_packages/OP-42)');
+  assert.equal(buildPageLink({ title: 'Some task title', url: 'https://host/projects/p/work_packages/OP-42/activity', isOpenProject: true }), '[Some task title](https://host/wp/OP-42)');
   assert.equal(buildPageLink({ title: '', url: 'https://host/', isOpenProject: false }), '[](https://host/)');
 });
