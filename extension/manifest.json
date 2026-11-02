@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Copy OpenProject Link",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Copy the current page as Markdown. Automatically resolve OpenProject work package links.",
   "minimum_chrome_version": "116",
   "permissions": ["activeTab", "scripting", "contextMenus", "clipboardWrite", "offscreen", "storage"],

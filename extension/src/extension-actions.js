@@ -30,7 +30,10 @@ export function createCopyAction(api = chrome, dependencies = {}) {
       mode === COPY_MODES.HIGHLIGHT ? highlightInfo(tabId, info) : pageInfo(tabId),
       mode === undefined ? toolbarMode() : mode,
     ])).then(
-      ([page, selectedMode]) => ({ page, mode: selectedMode }),
+      ([page, selectedMode]) => ({
+        page,
+        mode: mode === undefined && !page.isOpenProject ? COPY_MODES.TITLE : selectedMode,
+      }),
       () => ({ failed: true, errorCode: mode === COPY_MODES.HIGHLIGHT ? HIGHLIGHT_UNAVAILABLE : 'PAGE_UNAVAILABLE' }),
     );
     const next = queue.then(async () => {

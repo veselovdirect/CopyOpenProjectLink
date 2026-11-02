@@ -34,7 +34,7 @@ Open a page and click the icon to copy a Markdown link with the page title. The 
 - **Work package ID** — use the ID in parentheses in an OpenProject page title as the link text, for example `[112554](https://host/wp/112554)`.
 - **Copy link to highlight** — appears when text is selected on an HTTP(S) page. Use the selected text as the Markdown label and link directly to that passage.
 
-The toolbar icon uses the action selected in the extension's settings; the default is **Page title**. Context menu choices do not change that setting. Paste the result with Ctrl+V. The full-title, short-title and work-package-ID choices always copy the tab's top-level page, even when their menu is opened on a link or inside an iframe.
+The toolbar icon uses the action selected in the extension's settings on OpenProject pages; on other sites it always uses **Page title**. The default setting is **Page title**. Context menu choices do not change that setting. Paste the result with Ctrl+V. The full-title, short-title and work-package-ID choices always copy the tab's top-level page, even when their menu is opened on a link or inside an iframe.
 
 Short-title mode processes the raw page title before Markdown escaping. For example, `Bug: “Filter by text” returns unrelated work packages for Cyrillic queries (OP-20237) | OpenProject | OpenProject Community` becomes `“Filter by text” returns unrelated work packages for Cyrillic queries (OP-20237)`. Only the first colon in the task portion is removed; later colons and any pipes before the final two are preserved. Without a colon, no prefix is removed; with fewer than two pipes, no suffix is removed. This mode requires an OpenProject page and an ID marker in the resulting title; otherwise the clipboard stays unchanged and the icon shows an error.
 
@@ -58,7 +58,7 @@ URLs are normalized only when `<meta name="openproject_initializer">` is present
 
 Right-click the extension icon and open **Options** (the browser may label it **Extension options**). Alternatively, open the extension's details in the browser's extensions manager and choose **Extension options**.
 
-Choose **Page title**, **Short work package title** or **Work package ID**. The setting saves automatically in this browser profile and applies to the next toolbar click, including after restarting the browser. The default is **Page title**. Short-title and ID modes require an OpenProject page with an appropriate ID marker; on other pages, copying fails with feedback and leaves the clipboard unchanged. Context menu actions remain available independently of this preference.
+Choose **Page title**, **Short work package title** or **Work package ID**. The setting saves automatically in this browser profile and applies to the next toolbar click, including after restarting the browser. The default is **Page title**. On sites other than OpenProject, the toolbar button always copies a link with the full page title and preserves the original URL, regardless of this setting. On OpenProject pages, short-title and ID modes still require an appropriate ID marker; without it, copying fails with feedback and leaves the clipboard unchanged. Context menu actions remain available independently of this preference and retain their mode-specific requirements.
 
 ## Copy a link to selected text
 

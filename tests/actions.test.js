@@ -100,3 +100,42 @@ test('ID failure leaves clipboard unchanged, explains why, and does not change t
   assert.equal(await copy({ id: 1 }), true);
   assert.deepEqual(writes, ['[Task without an ID](https://host/wp/7)']);
 });
+
+for (const mode of [COPY_MODES.SHORT_TITLE, COPY_MODES.WORK_PACKAGE_ID]) {
+  test(`toolbar ${mode} uses full titles outside OpenProject and keeps the preference`, async () => {
+    const writes = [], states = [];
+    let page;
+    const copy = createCopyAction({}, {
+      toolbarMode: async () => mode,
+      pageInfo: async () => page,
+      clipboard: { writeText: async (text) => writes.push(text) },
+      feedback: { show: async (...state) => states.push(state) },
+    });
+    const url = 'https://host/work_packages/42/activity?keep=1#fragment';
+    for (const title of ['Ordinary page', 'Article: Example (42) | Section | Site']) {
+      page = { title, url, isOpenProject: false };
+      assert.equal(await copy({ id: 1 }), true);
+    }
+    assert.deepEqual(writes, [
+      `[Ordinary page](${url})`,
+      `[Article: Example \\(42\\) \\| Section \\| Site](${url})`,
+    ]);
+    assert.deepEqual(states, [[1, true, undefined], [1, true, undefined]]);
+
+    // Explicit context menu choices still require an OpenProject page.
+    assert.equal(await copy({ id: 1 }, mode), false);
+    assert.equal(writes.length, 2);
+    assert.deepEqual(states.at(-1), [1, false, ID_NOT_FOUND]);
+
+    page = { title: 'Bug: Fix (42) | Project | OpenProject', url, isOpenProject: true };
+    assert.equal(await copy({ id: 1 }), true);
+    assert.equal(writes.at(-1), mode === COPY_MODES.SHORT_TITLE
+      ? '[Fix \\(42\\)](https://host/wp/42)'
+      : '[42](https://host/wp/42)');
+
+    page = { title: 'No ID marker', url, isOpenProject: true };
+    assert.equal(await copy({ id: 1 }), false);
+    assert.equal(writes.length, 3);
+    assert.deepEqual(states.at(-1), [1, false, ID_NOT_FOUND]);
+  });
+}
