@@ -78,3 +78,22 @@ test('highlight and page modes share clipboard ordering and recover after a fail
   assert.deepEqual(states.at(-1), [2, false, HIGHLIGHT_UNAVAILABLE]);
   assert.equal(await copy({ id: 1 }), true);
 });
+
+test('collapse HTML indentation in all Text Fragment fields without changing Cyrillic letters', () => {
+  const link = buildHighlightLink({
+    text: 'Обновлено файлов: 2', url: 'https://gitea.redkit-lab.work/',
+    fragment: {
+      prefix: 'c0f12dbd99', textStart: 'Обновлено файлов: 2',
+      suffix: 'Дмитрий Веселов\n\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\t\t\n\t\t\t\t\t\t\tотправил',
+    },
+  });
+  const url = link.slice(link.indexOf('](') + 2, -1);
+  assert.equal(decodeURIComponent(url), 'https://gitea.redkit-lab.work/#:~:text=c0f12dbd99-,Обновлено файлов: 2,-Дмитрий Веселов отправил');
+  assert.doesNotMatch(url, /%0A|%09|%0D/);
+  assert.equal(buildHighlightLink({ ...highlight, fragment: {
+    prefix: ' before\r\n context ', textStart: ' Selected\ttext ',
+    textEnd: ' end\n text ', suffix: ' after\t context ',
+  } }), buildHighlightLink({ ...highlight, fragment: {
+    prefix: 'before context', textStart: 'Selected text', textEnd: 'end text', suffix: 'after context',
+  } }));
+});

@@ -37,6 +37,12 @@ const server = createServer((request, response) => {
     <p>Second context before <span id="second">Repeated target phrase</span> with a second ending.</p>
     <p id="cyrillic">Выделенный текст [пример] — проверка ссылки.</p>
     <div id="multiple"><p>Opening words in the first paragraph.</p><p>Closing words in the second paragraph.</p></div>
+    <div style="height:0"><div style="float:left;width:100%"><dl><dd>4.1. <strong id="overflow-target">Альтернативный способ задания функций</strong></dd></dl><p>Возможна автоматическая генерация</p></div></div><div style="clear:both"></div>
+    <div style="display:none">Альтернативный способ задания функций</div>
+    <div id="feed-first"><a>Дмитрий Веселов</a>
+            отправил(а) изменения в <a>master</a> в <a>redkit-lab/visualeditor</a></div>
+    <div><a>Дмитрий Веселов</a>
+            отправил(а) изменения в <a>master</a> в <a>redkit-lab/scada</a></div>
     <p id="editable" contenteditable="true">Editable text cannot be linked.</p>
     <div style="height:1200px"></div>`;
   response.end(`<!doctype html><head><title>${title}</title>${ordinary ? '' : '<meta name="openproject_initializer">'}</head><body><a href="https://different.invalid/">Different destination</a>${request.url.startsWith('/ordinary-frame') ? '' : '<iframe src="/ordinary-frame"></iframe>'}${content}</body>`);
@@ -212,6 +218,53 @@ try {
   });
   assert.deepEqual(denied, { success: false, badge: '!' });
   assert.deepEqual(errors, []);
+  await page.goto(ordinaryUrl);
+  selected = await select('overflow-target');
+  assert.equal((await invoke('highlight', { selectionText: selected })).success, true);
+  const overflowLink = await paste();
+  assert.ok(overflowLink.startsWith('[Альтернативный способ задания функций]('));
+  assert.ok(overflowLink.includes(ordinaryUrl + ':~:text='));
+  assert.ok(decodeURIComponent(overflowLink).includes('функций'));
+  const overflowUrl = overflowLink.slice(overflowLink.indexOf('](') + 2, -1);
+  await page.evaluate((url) => {
+    const link = document.createElement('a');
+    link.id = 'follow-overflow'; link.href = url; link.target = '_blank'; link.rel = 'noopener';
+    link.textContent = 'Follow overflowing text'; document.body.prepend(link);
+  }, overflowUrl);
+  const overflowOpened = context.waitForEvent('page');
+  await page.locator('#follow-overflow').click();
+  const overflowDestination = await overflowOpened;
+  await overflowDestination.waitForLoadState();
+  await overflowDestination.waitForFunction(() => {
+    const rect = document.getElementById('overflow-target').getBoundingClientRect();
+    return scrollY > 1000 && rect.top >= 0 && rect.top < innerHeight;
+  });
+  await overflowDestination.close();
+  await page.bringToFront();
+  selected = await page.evaluate(() => {
+    const node = document.getElementById('feed-first').childNodes[1];
+    const text = 'отправил(а) изменения';
+    const start = node.textContent.indexOf(text);
+    const range = document.createRange();
+    range.setStart(node, start); range.setEnd(node, start + text.length);
+    const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
+    return selection.toString();
+  });
+  assert.equal((await invoke('highlight', { selectionText: selected })).success, true);
+  const feedLink = await paste();
+  const feedUrl = feedLink.slice(feedLink.indexOf('](') + 2, -1);
+  assert.ok(decodeURIComponent(feedUrl).includes('отправил(а) изменения'));
+  assert.match(feedUrl, /-,|,-/);
+  await page.evaluate((url) => { document.getElementById('follow-overflow').href = url; }, feedUrl);
+  const feedOpened = context.waitForEvent('page');
+  await page.locator('#follow-overflow').click();
+  const feedDestination = await feedOpened;
+  await feedDestination.waitForLoadState();
+  await feedDestination.waitForFunction(() => {
+    const rect = document.getElementById('feed-first').getBoundingClientRect();
+    return scrollY > 1000 && rect.top >= 0 && rect.top < innerHeight;
+  });
+  await feedDestination.close();
   console.log('Browser clipboard, title/ID/highlight modes, repeated-text navigation, Cyrillic, multi-paragraph selection, failure recovery, no popup and restricted pages: OK');
 } finally {
   await context?.close();

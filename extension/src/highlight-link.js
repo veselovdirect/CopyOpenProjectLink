@@ -2,8 +2,9 @@ import { formatMarkdownLink } from './markdown-formatter.js';
 
 export const HIGHLIGHT_UNAVAILABLE = 'HIGHLIGHT_UNAVAILABLE';
 
+// Collapse HTML whitespace in every selector field before URL encoding.
 // Hyphens and commas delimit Text Fragment fields; encode them inside fields.
-const encode = (text) => encodeURIComponent(text).replace(/[!'()*-]/g,
+const encode = (text) => encodeURIComponent(text.replace(/\s+/gu, ' ').trim()).replace(/[!'()*-]/g,
   (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`);
 
 export function buildHighlightLink({ text, url: originalUrl, fragment }) {
